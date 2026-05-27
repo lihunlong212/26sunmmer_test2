@@ -27,7 +27,7 @@ def generate_launch_description():
         "source_frame": "map",
         # 飞机机体/雷达坐标系。
         "target_frame": "laser_link",
-        # demo1 启动后直接开始任务，所以速度转发立即开启，不再等待 /route_choice。
+        # demo1 启动后直接开始任务，所以速度转发立即开启。
         "target_velocity_forwarding_auto_enable": True,
     }
 
@@ -74,8 +74,6 @@ def generate_launch_description():
         "spray_required_frames": 1,
         # 发给 laser_control_pkg 的命令，3 表示 pulse 脉冲。
         "laser_pulse_command": 3,
-        # 启动后直接执行源码中定义的航线。
-        "auto_start_route": True,
         # 航点坐标只在 src/activity_control_pkg/src/route_target_publisher.cpp 中修改。
         # 不要在 launch 文件里放航点数组，避免飞行路线和源码不一致。
     }

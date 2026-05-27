@@ -23,7 +23,6 @@ def generate_launch_description() -> LaunchDescription:
         "spray_data_stale_timeout_sec": 0.5,
         "spray_required_frames": 1,
         "laser_pulse_command": 3,
-        "auto_start_route": True,
     }
 
     uart_params = {

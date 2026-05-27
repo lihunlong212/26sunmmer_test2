@@ -1,10 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
@@ -50,7 +48,7 @@ private:
   void heightCallback(const std_msgs::msg::Int16::SharedPtr msg);
   void sprayAllowedCallback(const std_msgs::msg::Bool::SharedPtr msg);
   void advanceToNextTarget();
-  void loadAutoStartRouteFromParameters();
+  void loadSourceRoute();
   void resetSprayState();
   bool handleSprayTarget(const rclcpp::Time & now_time);
 
@@ -98,26 +96,6 @@ private:
   bool spray_active_;
   int spray_allowed_frame_count_;
   rclcpp::Time spray_start_time_;
-};
-
-class RouteTestNode : public rclcpp::Node
-{
-public:
-  explicit RouteTestNode(
-    const std::shared_ptr<RouteTargetPublisherNode> & route_node,
-    const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
-
-private:
-  using RouteId = std::uint8_t;
-
-  void routeChoiceCallback(const std_msgs::msg::UInt8::SharedPtr msg);
-  std::unordered_map<RouteId, std::vector<Target>> buildRoutes() const;
-  void loadRoute(RouteId route_id, const std::vector<Target> & route);
-
-  std::shared_ptr<RouteTargetPublisherNode> route_node_;
-  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr route_choice_sub_;
-  std::unordered_map<RouteId, std::vector<Target>> routes_;
-  bool route_locked_;
 };
 
 }  // namespace activity_control_pkg

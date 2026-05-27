@@ -14,7 +14,7 @@ This workspace is configured for the 2021 plant-protection UAV task.
 
 Waypoints are edited only in `activity_control_pkg/src/route_target_publisher.cpp`.
 
-`demo1.launch.py` starts `route_target_publisher_node` with `auto_start_route=true`, so the source-defined route begins immediately after launch. `Target{..., true}` runs the color check and laser pulse; `Target{...}` or `Target{..., false}` is a normal waypoint.
+`demo1.launch.py` starts `route_target_publisher_node`, and the source-defined route begins immediately after launch. `Target{..., true}` runs the color check and laser pulse; `Target{...}` or `Target{..., false}` is a normal waypoint.
 
 ## Color Detection
 
