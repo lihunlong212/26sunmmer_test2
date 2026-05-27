@@ -4,7 +4,7 @@ This workspace is configured for the 2021 plant-protection UAV task.
 
 ## Main Data Flow
 
-- `activity_control_pkg` publishes `/target_position`, manages the waypoint queue, and triggers `/laser/cmd=3` only at spray waypoints that pass color detection.
+- `activity_control_pkg` publishes `/target_position`, manages the waypoint queue, and flashes the laser twice only at spray waypoints that pass color detection.
 - `drone_camera_pkg` reads the downward camera center ROI and publishes `/spray_allowed`.
 - `laser_control_pkg` subscribes to `/laser/cmd` and controls WiringOP pin 10. Low level turns the laser on, high level turns it off.
 - `pid_control_pkg` converts `/target_position` and `/height` into `/target_velocity`.

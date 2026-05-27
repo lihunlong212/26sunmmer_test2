@@ -21,8 +21,10 @@ def generate_launch_description() -> LaunchDescription:
         "height_tolerance_cm": 6.0,
         "spray_decision_timeout_sec": 1.5,
         "spray_data_stale_timeout_sec": 0.5,
-        "spray_required_frames": 1,
-        "laser_pulse_command": 3,
+        "spray_flash_on_sec": 0.5,
+        "spray_flash_gap_sec": 0.5,
+        "laser_on_command": 1,
+        "laser_off_command": 2,
     }
 
     uart_params = {

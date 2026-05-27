@@ -70,10 +70,12 @@ def generate_launch_description():
         "spray_decision_timeout_sec": 1.5,
         # /spray_allowed 超过这个时间没更新，就认为视觉数据过期，单位秒。
         "spray_data_stale_timeout_sec": 0.5,
-        # 到达需要撒药的航点后，只用当前一次新鲜 /spray_allowed 结果判断是否打药。
-        "spray_required_frames": 1,
-        # 发给 laser_control_pkg 的命令，3 表示 pulse 脉冲。
-        "laser_pulse_command": 3,
+        # 绿色时打激光：亮 0.5 秒、灭 0.5 秒、再亮 0.5 秒、最后灭灯。
+        "spray_flash_on_sec": 0.5,
+        "spray_flash_gap_sec": 0.5,
+        # 发给 laser_control_pkg 的命令，1=开灯，2=关灯。
+        "laser_on_command": 1,
+        "laser_off_command": 2,
         # 航点坐标只在 src/activity_control_pkg/src/route_target_publisher.cpp 中修改。
         # 不要在 launch 文件里放航点数组，避免飞行路线和源码不一致。
     }
@@ -86,8 +88,8 @@ def generate_launch_description():
         "off_level": 1,
         # 节点启动时先确保激光关闭。
         "initial_off": True,
-        # 激光脉冲持续时间，单位秒。
-        "pulse_duration": 1.0,
+        # 手动发送 /laser/cmd=3 时的单次脉冲持续时间，单位秒；航线撒药不用这个参数。
+        "pulse_duration": 0.5,
         # 激光命令和状态话题。
         "command_topic": "/laser/cmd",
         "status_topic": "/laser/status",

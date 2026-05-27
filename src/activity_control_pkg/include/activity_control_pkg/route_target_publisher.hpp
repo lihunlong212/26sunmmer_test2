@@ -51,6 +51,7 @@ private:
   void loadSourceRoute();
   void resetSprayState();
   bool handleSprayTarget(const rclcpp::Time & now_time);
+  void publishLaserCommand(int command);
 
   static double meterToCm(double value_m);
   static double radToDeg(double value_rad);
@@ -84,8 +85,10 @@ private:
 
   double spray_decision_timeout_sec_;
   double spray_data_stale_timeout_sec_;
-  int spray_required_frames_;
-  int laser_pulse_command_;
+  double spray_flash_on_sec_;
+  double spray_flash_gap_sec_;
+  int laser_on_command_;
+  int laser_off_command_;
 
   bool mission_complete_sent_;
 
@@ -94,8 +97,9 @@ private:
   rclcpp::Time last_spray_allowed_time_;
 
   bool spray_active_;
-  int spray_allowed_frame_count_;
+  int spray_laser_step_;
   rclcpp::Time spray_start_time_;
+  rclcpp::Time spray_laser_step_time_;
 };
 
 }  // namespace activity_control_pkg

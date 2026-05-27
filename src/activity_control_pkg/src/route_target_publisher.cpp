@@ -76,13 +76,15 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
   current_height_cm_(0.0),
   spray_decision_timeout_sec_(0.0),
   spray_data_stale_timeout_sec_(0.0),
-  spray_required_frames_(0),
-  laser_pulse_command_(0),
+  spray_flash_on_sec_(0.0),
+  spray_flash_gap_sec_(0.0),
+  laser_on_command_(0),
+  laser_off_command_(0),
   mission_complete_sent_(false),
   has_spray_allowed_(false),
   latest_spray_allowed_(false),
   spray_active_(false),
-  spray_allowed_frame_count_(0)
+  spray_laser_step_(-1)
 {
   pos_tol_cm_ = declare_parameter("position_tolerance_cm", 9.0);
   yaw_tol_deg_ = declare_parameter("yaw_tolerance_deg", 5.0);
@@ -92,8 +94,10 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
   output_topic_ = declare_parameter("output_topic", "/target_position");
   spray_decision_timeout_sec_ = declare_parameter("spray_decision_timeout_sec", 1.5);
   spray_data_stale_timeout_sec_ = declare_parameter("spray_data_stale_timeout_sec", 0.5);
-  spray_required_frames_ = declare_parameter("spray_required_frames", 1);
-  laser_pulse_command_ = declare_parameter("laser_pulse_command", 3);
+  spray_flash_on_sec_ = declare_parameter("spray_flash_on_sec", 0.5);
+  spray_flash_gap_sec_ = declare_parameter("spray_flash_gap_sec", 0.5);
+  laser_on_command_ = declare_parameter("laser_on_command", 1);
+  laser_off_command_ = declare_parameter("laser_off_command", 2);
 
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -134,11 +138,13 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
     height_tol_cm_);
   RCLCPP_INFO(
     get_logger(),
-    "Spray gating: frames=%d decision_timeout=%.1fs stale=%.1fs laser_cmd=%d",
-    spray_required_frames_,
+    "Spray gating: decision_timeout=%.1fs stale=%.1fs flash_on=%.1fs flash_gap=%.1fs on_cmd=%d off_cmd=%d",
     spray_decision_timeout_sec_,
     spray_data_stale_timeout_sec_,
-    laser_pulse_command_);
+    spray_flash_on_sec_,
+    spray_flash_gap_sec_,
+    laser_on_command_,
+    laser_off_command_);
 }
 
 void RouteTargetPublisherNode::loadSourceRoute()
@@ -323,15 +329,23 @@ void RouteTargetPublisherNode::advanceToNextTarget()
 void RouteTargetPublisherNode::resetSprayState()
 {
   spray_active_ = false;
-  spray_allowed_frame_count_ = 0;
+  spray_laser_step_ = -1;
   spray_start_time_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
+  spray_laser_step_time_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
+}
+
+void RouteTargetPublisherNode::publishLaserCommand(int command)
+{
+  std_msgs::msg::Int32 laser_msg;
+  laser_msg.data = command;
+  laser_cmd_pub_->publish(laser_msg);
 }
 
 bool RouteTargetPublisherNode::handleSprayTarget(const rclcpp::Time & now_time)
 {
   if (!spray_active_) {
     spray_active_ = true;
-    spray_allowed_frame_count_ = 0;
+    spray_laser_step_ = -1;
     spray_start_time_ = now_time;
     RCLCPP_INFO(
       get_logger(),
@@ -339,13 +353,35 @@ bool RouteTargetPublisherNode::handleSprayTarget(const rclcpp::Time & now_time)
       current_idx_);
   }
 
+  if (spray_laser_step_ >= 0) {
+    const double step_elapsed = (now_time - spray_laser_step_time_).seconds();
+    if (spray_laser_step_ == 0 && step_elapsed >= spray_flash_on_sec_) {
+      publishLaserCommand(laser_off_command_);
+      spray_laser_step_ = 1;
+      spray_laser_step_time_ = now_time;
+      RCLCPP_INFO(get_logger(), "Target %zu laser first flash off.", current_idx_);
+    } else if (spray_laser_step_ == 1 && step_elapsed >= spray_flash_gap_sec_) {
+      publishLaserCommand(laser_on_command_);
+      spray_laser_step_ = 2;
+      spray_laser_step_time_ = now_time;
+      RCLCPP_INFO(get_logger(), "Target %zu laser second flash on.", current_idx_);
+    } else if (spray_laser_step_ == 2 && step_elapsed >= spray_flash_on_sec_) {
+      publishLaserCommand(laser_off_command_);
+      RCLCPP_INFO(get_logger(), "Target %zu laser sequence finished.", current_idx_);
+      advanceToNextTarget();
+    }
+    return true;
+  }
+
   const double elapsed = (now_time - spray_start_time_).seconds();
+  const bool has_new_arrival_frame =
+    has_spray_allowed_ &&
+    last_spray_allowed_time_.nanoseconds() != 0 &&
+    (last_spray_allowed_time_ - spray_start_time_).seconds() >= 0.0;
   if (
-    !has_spray_allowed_ ||
-    last_spray_allowed_time_.nanoseconds() == 0 ||
+    !has_new_arrival_frame ||
     (now_time - last_spray_allowed_time_).seconds() > spray_data_stale_timeout_sec_)
   {
-    spray_allowed_frame_count_ = 0;
     if (elapsed >= spray_decision_timeout_sec_) {
       RCLCPP_WARN(
         get_logger(),
@@ -365,22 +401,19 @@ bool RouteTargetPublisherNode::handleSprayTarget(const rclcpp::Time & now_time)
   }
 
   if (latest_spray_allowed_) {
-    ++spray_allowed_frame_count_;
-    if (spray_allowed_frame_count_ >= spray_required_frames_) {
-      std_msgs::msg::Int32 laser_msg;
-      laser_msg.data = laser_pulse_command_;
-      laser_cmd_pub_->publish(laser_msg);
-      RCLCPP_INFO(
-        get_logger(),
-        "Spraying target %zu with /laser/cmd=%d.",
-        current_idx_,
-        laser_pulse_command_);
-      advanceToNextTarget();
-    }
+    publishLaserCommand(laser_on_command_);
+    spray_laser_step_ = 0;
+    spray_laser_step_time_ = now_time;
+    RCLCPP_INFO(
+      get_logger(),
+      "Target %zu is green. Starting laser sequence: on %.1fs, off %.1fs, on %.1fs.",
+      current_idx_,
+      spray_flash_on_sec_,
+      spray_flash_gap_sec_,
+      spray_flash_on_sec_);
     return true;
   }
 
-  spray_allowed_frame_count_ = 0;
   RCLCPP_INFO(
     get_logger(),
     "Target %zu is not green according to /spray_allowed. Skipping spray.",
