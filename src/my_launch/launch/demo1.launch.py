@@ -65,7 +65,7 @@ def generate_launch_description():
         # 启动后先等待雷达发布 /detected_pillar，再起飞。
         # 条形码观察点 = 柱子坐标向左偏 0.8m：例如 (1, -1) -> (1, -0.2)。
         "pillar_left_offset_m": 0.8,
-        "barcode_target_z_cm": 130.0,
+        "barcode_target_z_cm": 105.0,
         # 到达判定容差，单位分别是 cm、deg、cm。
         "position_tolerance_cm": 8.0,
         "yaw_tolerance_deg": 8.0,
@@ -111,12 +111,12 @@ def generate_launch_description():
         "center_roi_width": 50,
         "center_roi_height": 50,
         # HSV 绿色阈值。
-        "green_h_min": 35,
-        "green_h_max": 90,
-        "green_s_min": 45,
-        "green_v_min": 60,
-        # 绿色像素占中心 2500 像素的比例，大于 0.10 就认为可以撒药。
-        "green_ratio_threshold": 0.10,
+        "green_h_min": 25,
+        "green_h_max": 100,
+        "green_s_min": 20,
+        "green_v_min": 40,
+        # 中心 50x50 共 2500 像素，绿色像素不少于 100 个就认为可以撒药。
+        "green_pixel_threshold": 100,
         # 颜色识别只输出这个打药判断话题；测试时看 ros2 topic echo /spray_allowed。
         "spray_allowed_topic": "/spray_allowed",
     }

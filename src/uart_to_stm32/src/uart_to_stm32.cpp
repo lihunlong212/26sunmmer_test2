@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cctype>
 #include <cmath>
+#include <cstdlib>
 #include <thread>
 #include <utility>
 
@@ -181,7 +182,7 @@ void UartToStm32::processTfTransform(const geometry_msgs::msg::TransformStamped 
     "Transform %s -> %s: pos(%.3f, %.3f, %.3f) rot(%.3f, %.3f, %.3f)",
     source_frame_.c_str(), target_frame_.c_str(), x, y, z, roll, pitch, yaw);
 
-  if (!route_task_active_ && velocity_valid_ && yaw_valid_) {
+  if (velocity_valid_ && yaw_valid_) {
     Eigen::Vector3d linear_vel(
       current_velocity_.linear.x,
       current_velocity_.linear.y,
@@ -220,10 +221,6 @@ void UartToStm32::routeChoiceCallback(const std_msgs::msg::UInt8::SharedPtr msg)
 
 void UartToStm32::velocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
 {
-  if (route_task_active_) {
-    return;
-  }
-
   current_velocity_ = *msg;
   velocity_valid_ = true;
 
@@ -529,15 +526,28 @@ void UartToStm32::barcodeTextCallback(const std_msgs::msg::String::SharedPtr msg
       [](unsigned char ch) { return std::isspace(ch) != 0; }),
     text.end());
 
-  if (text.size() != 1 || text[0] < '1' || text[0] > '3') {
+  if (text.empty() || !std::all_of(text.begin(), text.end(), [](unsigned char ch) {
+      return std::isdigit(ch) != 0;
+    }))
+  {
     RCLCPP_WARN(
       node_->get_logger(),
-      "Ignoring /barcode_text='%s'. Expected barcode content 1, 2, or 3.",
+      "Ignoring /barcode_text='%s'. Expected numeric barcode content 1, 2, or 3.",
       msg->data.c_str());
     return;
   }
 
-  const uint8_t digit = static_cast<uint8_t>(text[0] - '0');
+  const int parsed_digit = std::atoi(text.c_str());
+  if (parsed_digit < 1 || parsed_digit > 3) {
+    RCLCPP_WARN(
+      node_->get_logger(),
+      "Ignoring /barcode_text='%s'. Parsed value=%d, expected 1, 2, or 3.",
+      msg->data.c_str(),
+      parsed_digit);
+    return;
+  }
+
+  const uint8_t digit = static_cast<uint8_t>(parsed_digit);
   RCLCPP_INFO(
     node_->get_logger(),
     "Received /barcode_text='%s'. Sending frame 0x%02X digit=%u three times.",

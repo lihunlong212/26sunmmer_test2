@@ -110,8 +110,11 @@ private:
 
   bool spray_active_;
   int spray_laser_step_;
+  int spray_frame_count_;
+  bool spray_seen_green_;
   rclcpp::Time spray_start_time_;
   rclcpp::Time spray_laser_step_time_;
+  rclcpp::Time last_sampled_spray_time_;
 };
 
 }  // namespace activity_control_pkg

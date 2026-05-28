@@ -26,11 +26,11 @@ public:
     spray_allowed_topic_(declare_parameter<std::string>("spray_allowed_topic", "/spray_allowed")),
     center_roi_width_(declare_parameter<int>("center_roi_width", 50)),
     center_roi_height_(declare_parameter<int>("center_roi_height", 50)),
-    green_h_min_(declare_parameter<int>("green_h_min", 35)),
-    green_h_max_(declare_parameter<int>("green_h_max", 90)),
-    green_s_min_(declare_parameter<int>("green_s_min", 45)),
-    green_v_min_(declare_parameter<int>("green_v_min", 60)),
-    green_ratio_threshold_(declare_parameter<double>("green_ratio_threshold", 0.10))
+    green_h_min_(declare_parameter<int>("green_h_min", 25)),
+    green_h_max_(declare_parameter<int>("green_h_max", 100)),
+    green_s_min_(declare_parameter<int>("green_s_min", 20)),
+    green_v_min_(declare_parameter<int>("green_v_min", 40)),
+    green_pixel_threshold_(declare_parameter<int>("green_pixel_threshold", 100))
   {
     spray_allowed_pub_ =
       create_publisher<std_msgs::msg::Bool>(spray_allowed_topic_, rclcpp::QoS(10));
@@ -56,12 +56,12 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "Camera color detector ready. camera=%s roi=%dx%d spray_topic=%s green_ratio_threshold=%.2f",
+      "Camera color detector ready. camera=%s roi=%dx%d spray_topic=%s green_pixel_threshold=%d",
       camera_device_.c_str(),
       center_roi_width_,
       center_roi_height_,
       spray_allowed_topic_.c_str(),
-      green_ratio_threshold_);
+      green_pixel_threshold_);
   }
 
   ~DroneCameraNode() override
@@ -92,9 +92,11 @@ private:
       cv::Scalar(green_h_max_, 255, 255),
       green_mask);
 
-    const double pixel_count = static_cast<double>(roi_width * roi_height);
-    const double green_ratio = static_cast<double>(cv::countNonZero(green_mask)) / pixel_count;
-    const bool allowed = green_ratio > green_ratio_threshold_;
+    const int green_pixels = cv::countNonZero(green_mask);
+    const int pixel_count = roi_width * roi_height;
+    const double green_ratio = pixel_count > 0 ?
+      static_cast<double>(green_pixels) / static_cast<double>(pixel_count) : 0.0;
+    const bool allowed = green_pixels >= green_pixel_threshold_;
 
     std_msgs::msg::Bool allowed_msg;
     allowed_msg.data = allowed;
@@ -104,9 +106,11 @@ private:
       get_logger(),
       *get_clock(),
       1000,
-      "Center color: green_ratio=%.3f threshold=%.3f allowed=%s",
+      "Center color: green_pixels=%d/%d green_ratio=%.3f threshold_pixels=%d allowed=%s",
+      green_pixels,
+      pixel_count,
       green_ratio,
-      green_ratio_threshold_,
+      green_pixel_threshold_,
       allowed ? "true" : "false");
   }
 
@@ -143,7 +147,7 @@ private:
   int green_h_max_;
   int green_s_min_;
   int green_v_min_;
-  double green_ratio_threshold_;
+  int green_pixel_threshold_;
 
   std::mutex frame_mutex_;
   cv::VideoCapture camera_;

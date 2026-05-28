@@ -19,6 +19,7 @@ namespace activity_control_pkg
 namespace
 {
 constexpr double kDefaultTimerPeriodSec = 0.05;
+constexpr int kSprayDecisionFrameCount = 3;
 
 std::vector<Target> buildPlantProtectionRoute()
 {
@@ -87,7 +88,9 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
   pillar_target_inserted_(false),
   barcode_detected_(false),
   spray_active_(false),
-  spray_laser_step_(-1)
+  spray_laser_step_(-1),
+  spray_frame_count_(0),
+  spray_seen_green_(false)
 {
   pos_tol_cm_ = declare_parameter("position_tolerance_cm", 9.0);
   yaw_tol_deg_ = declare_parameter("yaw_tolerance_deg", 5.0);
@@ -96,7 +99,7 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
   laser_link_frame_ = declare_parameter("laser_link_frame", "laser_link");
   output_topic_ = declare_parameter("output_topic", "/target_position");
   pillar_left_offset_m_ = declare_parameter("pillar_left_offset_m", 0.8);
-  barcode_target_z_cm_ = declare_parameter("barcode_target_z_cm", 130.0);
+  barcode_target_z_cm_ = declare_parameter("barcode_target_z_cm", 105.0);
   spray_decision_timeout_sec_ = declare_parameter("spray_decision_timeout_sec", 1.5);
   spray_data_stale_timeout_sec_ = declare_parameter("spray_data_stale_timeout_sec", 0.5);
   spray_flash_on_sec_ = declare_parameter("spray_flash_on_sec", 0.3);
@@ -418,8 +421,11 @@ void RouteTargetPublisherNode::resetSprayState()
 {
   spray_active_ = false;
   spray_laser_step_ = -1;
+  spray_frame_count_ = 0;
+  spray_seen_green_ = false;
   spray_start_time_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
   spray_laser_step_time_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
+  last_sampled_spray_time_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
 }
 
 void RouteTargetPublisherNode::publishLaserCommand(int command)
@@ -434,11 +440,15 @@ bool RouteTargetPublisherNode::handleSprayTarget(const rclcpp::Time & now_time)
   if (!spray_active_) {
     spray_active_ = true;
     spray_laser_step_ = -1;
+    spray_frame_count_ = 0;
+    spray_seen_green_ = false;
     spray_start_time_ = now_time;
+    last_sampled_spray_time_ = rclcpp::Time(0, 0, get_clock()->get_clock_type());
     RCLCPP_INFO(
       get_logger(),
-      "Spray decision started for target %zu.",
-      current_idx_);
+      "Spray decision started for target %zu. Waiting for %d fresh color frames.",
+      current_idx_,
+      kSprayDecisionFrameCount);
   }
 
   if (spray_laser_step_ >= 0) {
@@ -466,14 +476,19 @@ bool RouteTargetPublisherNode::handleSprayTarget(const rclcpp::Time & now_time)
     has_spray_allowed_ &&
     last_spray_allowed_time_.nanoseconds() != 0 &&
     (last_spray_allowed_time_ - spray_start_time_).seconds() >= 0.0;
-  if (
-    !has_new_arrival_frame ||
+  const bool has_unsampled_frame =
+    has_new_arrival_frame &&
+    (last_spray_allowed_time_ - last_sampled_spray_time_).nanoseconds() > 0;
+
+  if (!has_new_arrival_frame ||
     (now_time - last_spray_allowed_time_).seconds() > spray_data_stale_timeout_sec_)
   {
     if (elapsed >= spray_decision_timeout_sec_) {
       RCLCPP_WARN(
         get_logger(),
-        "No fresh /spray_allowed for target %zu after %.1fs. Skipping spray.",
+        "Only received %d/%d fresh /spray_allowed frames for target %zu after %.1fs. Skipping spray.",
+        spray_frame_count_,
+        kSprayDecisionFrameCount,
         current_idx_,
         elapsed);
       advanceToNextTarget();
@@ -488,14 +503,43 @@ bool RouteTargetPublisherNode::handleSprayTarget(const rclcpp::Time & now_time)
     return true;
   }
 
-  if (latest_spray_allowed_) {
+  if (!has_unsampled_frame) {
+    RCLCPP_WARN_THROTTLE(
+      get_logger(),
+      *get_clock(),
+      1000,
+      "Waiting for next /spray_allowed frame for target %zu (%d/%d).",
+      current_idx_,
+      spray_frame_count_,
+      kSprayDecisionFrameCount);
+    return true;
+  }
+
+  ++spray_frame_count_;
+  spray_seen_green_ = spray_seen_green_ || latest_spray_allowed_;
+  last_sampled_spray_time_ = last_spray_allowed_time_;
+  RCLCPP_INFO(
+    get_logger(),
+    "Spray color frame %d/%d for target %zu: %s.",
+    spray_frame_count_,
+    kSprayDecisionFrameCount,
+    current_idx_,
+    latest_spray_allowed_ ? "green" : "not green");
+
+  if (spray_frame_count_ < kSprayDecisionFrameCount) {
+    return true;
+  }
+
+  if (spray_seen_green_) {
     publishLaserCommand(laser_on_command_);
     spray_laser_step_ = 0;
     spray_laser_step_time_ = now_time;
     RCLCPP_INFO(
       get_logger(),
-      "Target %zu is green. Starting laser sequence: on %.1fs, off %.1fs, on %.1fs.",
+      "Target %zu has green in %d/%d sampled frames. Starting laser sequence: on %.1fs, off %.1fs, on %.1fs.",
       current_idx_,
+      spray_frame_count_,
+      kSprayDecisionFrameCount,
       spray_flash_on_sec_,
       spray_flash_gap_sec_,
       spray_flash_on_sec_);
@@ -504,8 +548,9 @@ bool RouteTargetPublisherNode::handleSprayTarget(const rclcpp::Time & now_time)
 
   RCLCPP_INFO(
     get_logger(),
-    "Target %zu is not green according to /spray_allowed. Skipping spray.",
-    current_idx_);
+    "Target %zu has no green in %d sampled /spray_allowed frames. Skipping spray.",
+    current_idx_,
+    spray_frame_count_);
   advanceToNextTarget();
   return true;
 }
