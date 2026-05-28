@@ -6,7 +6,7 @@ This workspace is configured for the 2021 plant-protection UAV task.
 
 - `activity_control_pkg` publishes `/target_position`, manages the waypoint queue, and flashes the laser twice only at spray waypoints that pass color detection.
 - `drone_camera_pkg` reads the downward camera center ROI and publishes `/spray_allowed`.
-- `barcode_camera_pkg` reads `/dev/video1`, detects Code128 barcodes, and publishes the decoded text on `/barcode_text`.
+- `barcode_camera_pkg` reads `/dev/video0`, detects Code128 barcodes, and publishes the decoded text on `/barcode_text`; color detection uses `/dev/video2`.
 - `laser_control_pkg` subscribes to `/laser/cmd` and controls WiringOP pin 10. Low level turns the laser on, high level turns it off.
 - `pid_control_pkg` converts `/target_position` and `/height` into `/target_velocity`.
 - `uart_to_stm32` forwards `/target_velocity` during an active route, publishes `/height`, sends `/barcode_text` or `/led_digit` values 1/2/3 as serial frame `0x12`, and sends mission completion as frame `0x66`.

@@ -102,7 +102,7 @@ def generate_launch_description():
     # 6. 下视相机颜色识别
     camera_params = {
         # 相机设备和采集参数。
-        "camera_device": "/dev/video0",
+        "camera_device": "/dev/video2",
         "frame_width": 640,
         "frame_height": 480,
         "fps": 15.0,
@@ -123,8 +123,8 @@ def generate_launch_description():
 
     # 7. 单杆雷达检测
     barcode_params = {
-        # 条形码摄像头设备。Code128 条形码使用 video1，不和下视颜色识别的 video0 混用。
-        "camera_device": "/dev/video1",
+        # 条形码摄像头设备。Code128 条形码使用 video0，颜色识别使用 video2。
+        "camera_device": "/dev/video0",
         "frame_width": 640,
         "frame_height": 480,
         "fps": 15.0,
@@ -135,7 +135,7 @@ def generate_launch_description():
         "window_name": "barcode_camera_preview",
         # False 表示同一个条形码只在内容变化时发布一次；True 表示每帧识别到都发布。
         "publish_duplicates": False,
-        # 第一次识别到条形码并发布 /barcode_text 后关闭 video1。
+        # 第一次识别到条形码并发布 /barcode_text 后关闭 video0。
         "stop_after_first_publish": True,
     }
 

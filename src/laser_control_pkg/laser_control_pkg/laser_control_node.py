@@ -123,7 +123,8 @@ class LaserControlNode(Node):
         self._enabled = enabled
         msg = Bool()
         msg.data = enabled
-        self.status_pub.publish(msg)
+        if rclpy.ok():
+            self.status_pub.publish(msg)
 
     def _publish_result(self, text: str) -> None:
         msg = String()
@@ -144,9 +145,12 @@ def main(args: list[str] | None = None) -> None:
     node = LaserControlNode()
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ class BarcodeCameraNode(Node):
     def __init__(self) -> None:
         super().__init__("barcode_camera_node")
 
-        self.declare_parameter("camera_device", "/dev/video1")
+        self.declare_parameter("camera_device", "/dev/video0")
         self.declare_parameter("frame_width", 640)
         self.declare_parameter("frame_height", 480)
         self.declare_parameter("fps", 15.0)
@@ -130,9 +130,12 @@ def main(args: list[str] | None = None) -> None:
     node = BarcodeCameraNode()
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

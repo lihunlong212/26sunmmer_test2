@@ -18,6 +18,16 @@ using namespace std::chrono_literals;
 
 namespace
 {
+void calculateChecksum(const std::vector<uint8_t> & frame_data, uint8_t & sum_check, uint8_t & add_check)
+{
+  sum_check = 0;
+  add_check = 0;
+  for (const uint8_t byte : frame_data) {
+    sum_check = static_cast<uint8_t>((sum_check + byte) & 0xFF);
+    add_check = static_cast<uint8_t>((add_check + sum_check) & 0xFF);
+  }
+}
+
 bool isSupportedRouteChoice(uint8_t route_id)
 {
   return route_id == 1 || route_id == 2;
@@ -171,7 +181,7 @@ void UartToStm32::processTfTransform(const geometry_msgs::msg::TransformStamped 
     "Transform %s -> %s: pos(%.3f, %.3f, %.3f) rot(%.3f, %.3f, %.3f)",
     source_frame_.c_str(), target_frame_.c_str(), x, y, z, roll, pitch, yaw);
 
-  if (velocity_valid_ && yaw_valid_) {
+  if (!route_task_active_ && velocity_valid_ && yaw_valid_) {
     Eigen::Vector3d linear_vel(
       current_velocity_.linear.x,
       current_velocity_.linear.y,
@@ -210,6 +220,10 @@ void UartToStm32::routeChoiceCallback(const std_msgs::msg::UInt8::SharedPtr msg)
 
 void UartToStm32::velocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
 {
+  if (route_task_active_) {
+    return;
+  }
+
   current_velocity_ = *msg;
   velocity_valid_ = true;
 
@@ -440,11 +454,17 @@ void UartToStm32::sendLedDigitToSerial(uint8_t digit)
 
   std::vector<uint8_t> data(1, digit);
   if (serial_comm_->send_protocol_data(LED_DIGIT_FRAME_ID, static_cast<uint8_t>(data.size()), data)) {
+    std::vector<uint8_t> frame_for_check{0xAA, 0xFF, LED_DIGIT_FRAME_ID, 0x01, digit};
+    uint8_t sum_check = 0;
+    uint8_t add_check = 0;
+    calculateChecksum(frame_for_check, sum_check, add_check);
     RCLCPP_INFO(
       node_->get_logger(),
-      "Sent LED digit frame: id=0x%02X digit=%u",
+      "Sent LED digit frame: AA FF %02X 01 %02X %02X %02X",
       static_cast<unsigned>(LED_DIGIT_FRAME_ID),
-      static_cast<unsigned>(digit));
+      static_cast<unsigned>(digit),
+      static_cast<unsigned>(sum_check),
+      static_cast<unsigned>(add_check));
   } else {
     RCLCPP_WARN(
       node_->get_logger(),
