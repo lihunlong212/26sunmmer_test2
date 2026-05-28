@@ -26,6 +26,7 @@ class BarcodeCameraNode(Node):
         self.declare_parameter("show_preview", True)
         self.declare_parameter("window_name", "barcode_camera_preview")
         self.declare_parameter("publish_duplicates", False)
+        self.declare_parameter("stop_after_first_publish", True)
 
         self.camera_device = str(self.get_parameter("camera_device").value)
         self.frame_width = int(self.get_parameter("frame_width").value)
@@ -34,6 +35,7 @@ class BarcodeCameraNode(Node):
         self.show_preview = bool(self.get_parameter("show_preview").value)
         self.window_name = str(self.get_parameter("window_name").value)
         self.publish_duplicates = bool(self.get_parameter("publish_duplicates").value)
+        self.stop_after_first_publish = bool(self.get_parameter("stop_after_first_publish").value)
         barcode_topic = str(self.get_parameter("barcode_topic").value)
 
         if decode is None or ZBarSymbol is None:
@@ -74,6 +76,9 @@ class BarcodeCameraNode(Node):
                 self.publisher.publish(msg)
                 self.last_text = text
                 self.get_logger().info(f"Detected Code128 barcode: {text}")
+                if self.stop_after_first_publish:
+                    self._stop_camera()
+                    return
             break
 
         if self.show_preview:
@@ -107,10 +112,17 @@ class BarcodeCameraNode(Node):
             cv2.rectangle(frame, (x, y), (x + width, y + height), (0, 255, 0), 2)
 
     def destroy_node(self) -> None:
+        self._stop_camera()
+        super().destroy_node()
+
+    def _stop_camera(self) -> None:
+        if hasattr(self, "timer") and self.timer is not None:
+            self.timer.cancel()
+            self.destroy_timer(self.timer)
+            self.timer = None
         if self.capture.isOpened():
             self.capture.release()
         cv2.destroyAllWindows()
-        super().destroy_node()
 
 
 def main(args: list[str] | None = None) -> None:

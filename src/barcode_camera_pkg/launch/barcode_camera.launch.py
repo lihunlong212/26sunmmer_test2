@@ -19,6 +19,7 @@ def generate_launch_description():
                     "show_preview": True,
                     "window_name": "barcode_camera_preview",
                     "publish_duplicates": False,
+                    "stop_after_first_publish": True,
                 }
             ],
         )

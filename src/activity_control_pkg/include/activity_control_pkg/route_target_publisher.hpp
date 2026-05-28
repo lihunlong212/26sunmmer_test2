@@ -11,6 +11,7 @@
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/int16.hpp>
 #include <std_msgs/msg/int32.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/u_int8.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -25,6 +26,7 @@ struct Target
   double z_cm;
   double yaw_deg;
   bool spray = false;
+  bool wait_barcode = false;
 };
 
 class RouteTargetPublisherNode : public rclcpp::Node
@@ -47,10 +49,13 @@ private:
   void monitorTimerCallback();
   void heightCallback(const std_msgs::msg::Int16::SharedPtr msg);
   void sprayAllowedCallback(const std_msgs::msg::Bool::SharedPtr msg);
+  void pillarCallback(const std_msgs::msg::Float32MultiArray::SharedPtr msg);
+  void barcodeTextCallback(const std_msgs::msg::String::SharedPtr msg);
   void advanceToNextTarget();
   void loadSourceRoute();
   void resetSprayState();
   bool handleSprayTarget(const rclcpp::Time & now_time);
+  bool handleBarcodeTarget();
   void publishLaserCommand(int command);
 
   static double meterToCm(double value_m);
@@ -63,6 +68,8 @@ private:
   rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr laser_cmd_pub_;
   rclcpp::Subscription<std_msgs::msg::Int16>::SharedPtr height_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr spray_allowed_sub_;
+  rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr pillar_sub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr barcode_text_sub_;
   rclcpp::TimerBase::SharedPtr monitor_timer_;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -82,6 +89,8 @@ private:
   std::string map_frame_;
   std::string laser_link_frame_;
   std::string output_topic_;
+  double pillar_left_offset_m_;
+  double barcode_target_z_cm_;
 
   double spray_decision_timeout_sec_;
   double spray_data_stale_timeout_sec_;
@@ -95,6 +104,9 @@ private:
   bool has_spray_allowed_;
   bool latest_spray_allowed_;
   rclcpp::Time last_spray_allowed_time_;
+  bool pillar_target_inserted_;
+  bool barcode_detected_;
+  std::string latest_barcode_text_;
 
   bool spray_active_;
   int spray_laser_step_;

@@ -23,47 +23,48 @@ constexpr double kDefaultTimerPeriodSec = 0.05;
 std::vector<Target> buildPlantProtectionRoute()
 {
   return {
-    Target{0.0, 0.0, 140.0, 0.0},
+    Target{0.0, 0.0, 130.0, 0.0},
 
-    Target{200.0, -50.0, 140.0, 0.0, true},
-    Target{250.0, -50.0, 140.0, 0.0, true},
+    Target{200.0, -50.0, 130.0, 0.0, true},
+    Target{250.0, -50.0, 130.0, 0.0, true},
 
-    Target{250.0, -100.0, 140.0, 0.0, true},
-    Target{200.0, -100.0, 140.0, 0.0, true},
+    Target{250.0, -100.0, 130.0, 0.0, true},
+    Target{200.0, -100.0, 130.0, 0.0, true},
 
-    Target{200.0, -150.0, 140.0, 0.0, true},
-    Target{250.0, -150.0, 140.0, 0.0, true},
+    Target{200.0, -150.0, 130.0, 0.0, true},
+    Target{250.0, -150.0, 130.0, 0.0, true},
 
-    Target{250.0, -200.0, 140.0, 0.0, true},
-    Target{250.0, -250.0, 140.0, 0.0, true},
-    Target{250.0, -300.0, 140.0, 0.0, true},
-    Target{250.0, -350.0, 140.0, 0.0, true},
+    Target{250.0, -200.0, 130.0, 0.0, true},
+    Target{250.0, -250.0, 130.0, 0.0, true},
+    Target{250.0, -300.0, 130.0, 0.0, true},
+    Target{250.0, -350.0, 130.0, 0.0, true},
 
-    Target{200.0, -350.0, 140.0, 0.0, true},
-    Target{200.0, -300.0, 140.0, 0.0, true},
-    Target{200.0, -250.0, 140.0, 0.0, true},
-    Target{200.0, -200.0, 140.0, 0.0, true},
+    Target{200.0, -350.0, 130.0, 0.0, true},
+    Target{200.0, -300.0, 130.0, 0.0, true},
+    Target{200.0, -250.0, 130.0, 0.0, true},
+    Target{200.0, -200.0, 130.0, 0.0, true},
 
-    Target{150.0, -200.0, 140.0, 0.0, true},
-    Target{150.0, -250.0, 140.0, 0.0, true},
-    Target{150.0, -300.0, 140.0, 0.0, true},
-    Target{150.0, -350.0, 140.0, 0.0, true},
+    Target{150.0, -200.0, 130.0, 0.0, true},
+    Target{150.0, -250.0, 130.0, 0.0, true},
+    Target{150.0, -300.0, 130.0, 0.0, true},
+    Target{150.0, -350.0, 130.0, 0.0, true},
 
-    Target{100.0, -350.0, 140.0, 0.0, true},
-    Target{100.0, -300.0, 140.0, 0.0, true},
-    Target{100.0, -250.0, 140.0, 0.0, true},
-    Target{100.0, -200.0, 140.0, 0.0, true},
+    Target{100.0, -350.0, 130.0, 0.0, true},
+    Target{100.0, -300.0, 130.0, 0.0, true},
+    Target{100.0, -250.0, 130.0, 0.0, true},
+    Target{100.0, -200.0, 130.0, 0.0, true},
 
-    Target{50.0, -200.0, 140.0, 0.0, true},
-    Target{50.0, -250.0, 140.0, 0.0, true},
-    Target{50.0, -300.0, 140.0, 0.0, true},
-    Target{50.0, -350.0, 140.0, 0.0, true},
+    Target{50.0, -200.0, 130.0, 0.0, true},
+    Target{50.0, -250.0, 130.0, 0.0, true},
+    Target{50.0, -300.0, 130.0, 0.0, true},
+    Target{50.0, -350.0, 130.0, 0.0, true},
 
-    Target{0.0, -350.0, 140.0, 0.0, true},
-    Target{0.0, -300.0, 140.0, 0.0, true},
-    Target{0.0, -250.0, 140.0, 0.0, true},
-    Target{0.0, -200.0, 140.0, 0.0, true},
+    Target{0.0, -350.0, 130.0, 0.0, true},
+    Target{0.0, -300.0, 130.0, 0.0, true},
+    Target{0.0, -250.0, 130.0, 0.0, true},
+    Target{0.0, -200.0, 130.0, 0.0, true},
 
+    Target{0.0, 0.0, 130.0, 0.0},
     Target{0.0, 0.0, 0.0, 0.0},
   };
 }
@@ -83,6 +84,8 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
   mission_complete_sent_(false),
   has_spray_allowed_(false),
   latest_spray_allowed_(false),
+  pillar_target_inserted_(false),
+  barcode_detected_(false),
   spray_active_(false),
   spray_laser_step_(-1)
 {
@@ -92,6 +95,8 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
   map_frame_ = declare_parameter("map_frame", "map");
   laser_link_frame_ = declare_parameter("laser_link_frame", "laser_link");
   output_topic_ = declare_parameter("output_topic", "/target_position");
+  pillar_left_offset_m_ = declare_parameter("pillar_left_offset_m", 0.8);
+  barcode_target_z_cm_ = declare_parameter("barcode_target_z_cm", 130.0);
   spray_decision_timeout_sec_ = declare_parameter("spray_decision_timeout_sec", 1.5);
   spray_data_stale_timeout_sec_ = declare_parameter("spray_data_stale_timeout_sec", 0.5);
   spray_flash_on_sec_ = declare_parameter("spray_flash_on_sec", 0.3);
@@ -117,6 +122,14 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
     "/spray_allowed",
     rclcpp::QoS(10),
     std::bind(&RouteTargetPublisherNode::sprayAllowedCallback, this, std::placeholders::_1));
+  pillar_sub_ = create_subscription<std_msgs::msg::Float32MultiArray>(
+    "/detected_pillar",
+    rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+    std::bind(&RouteTargetPublisherNode::pillarCallback, this, std::placeholders::_1));
+  barcode_text_sub_ = create_subscription<std_msgs::msg::String>(
+    "/barcode_text",
+    rclcpp::QoS(10),
+    std::bind(&RouteTargetPublisherNode::barcodeTextCallback, this, std::placeholders::_1));
 
   monitor_timer_ = create_wall_timer(
     std::chrono::duration<double>(kDefaultTimerPeriodSec),
@@ -145,6 +158,11 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
     spray_flash_gap_sec_,
     laser_on_command_,
     laser_off_command_);
+  RCLCPP_INFO(
+    get_logger(),
+    "Pillar barcode task: waiting for /detected_pillar before takeoff, y_offset=%.2fm barcode_z=%.1fcm",
+    pillar_left_offset_m_,
+    barcode_target_z_cm_);
 }
 
 void RouteTargetPublisherNode::loadSourceRoute()
@@ -154,7 +172,7 @@ void RouteTargetPublisherNode::loadSourceRoute()
   RCLCPP_INFO(get_logger(), "Loading source-defined waypoint route with %zu targets.", route.size());
   for (std::size_t index = 0; index < route.size(); ++index) {
     const Target target = route[index];
-    addTarget(target);
+    targets_.push_back(target);
     RCLCPP_INFO(
       get_logger(),
       "Loaded auto waypoint %zu/%zu: x=%.1f y=%.1f z=%.1f yaw=%.1f spray=%s",
@@ -166,6 +184,9 @@ void RouteTargetPublisherNode::loadSourceRoute()
       target.yaw_deg,
       target.spray ? "true" : "false");
   }
+  mission_complete_sent_ = false;
+  current_idx_ = std::numeric_limits<std::size_t>::max();
+  RCLCPP_INFO(get_logger(), "Route is loaded. Waiting for pillar coordinate before publishing takeoff target.");
 }
 
 void RouteTargetPublisherNode::addTarget(const Target & target)
@@ -218,12 +239,13 @@ void RouteTargetPublisherNode::publishTarget(const Target & target, bool init_fl
 
   RCLCPP_INFO(
     get_logger(),
-    "Published target: x=%.1fcm y=%.1fcm z=%.1fcm yaw=%.1fdeg spray=%s%s",
+    "Published target: x=%.1fcm y=%.1fcm z=%.1fcm yaw=%.1fdeg spray=%s barcode=%s%s",
     target.x_cm,
     target.y_cm,
     target.z_cm,
     target.yaw_deg,
     target.spray ? "true" : "false",
+    target.wait_barcode ? "true" : "false",
     init_flag ? " (first)" : "");
 }
 
@@ -243,6 +265,72 @@ void RouteTargetPublisherNode::sprayAllowedCallback(const std_msgs::msg::Bool::S
   latest_spray_allowed_ = msg->data;
   has_spray_allowed_ = true;
   last_spray_allowed_time_ = now();
+}
+
+void RouteTargetPublisherNode::pillarCallback(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (pillar_target_inserted_) {
+    return;
+  }
+  if (msg->data.size() < 2) {
+    RCLCPP_WARN(get_logger(), "Ignoring /detected_pillar with less than 2 values.");
+    return;
+  }
+  if (targets_.size() < 2) {
+    RCLCPP_WARN(get_logger(), "Cannot insert barcode waypoint because route is too short.");
+    return;
+  }
+
+  const double pillar_x_m = static_cast<double>(msg->data[0]);
+  const double pillar_y_m = static_cast<double>(msg->data[1]);
+  Target barcode_target{
+    meterToCm(pillar_x_m),
+    meterToCm(pillar_y_m + pillar_left_offset_m_),
+    barcode_target_z_cm_,
+    0.0,
+    false,
+    true};
+
+  targets_.insert(targets_.begin() + 1, barcode_target);
+  pillar_target_inserted_ = true;
+  if (current_idx_ == std::numeric_limits<std::size_t>::max()) {
+    current_idx_ = 0;
+    publishCurrent();
+  }
+
+  RCLCPP_INFO(
+    get_logger(),
+    "Pillar coordinate from radar: x=%.2fm y=%.2fm.",
+    pillar_x_m,
+    pillar_y_m);
+  RCLCPP_INFO(
+    get_logger(),
+    "Actual barcode flight target: x=%.2fm y=%.2fm z=%.1fcm (pillar y + %.2fm).",
+    barcode_target.x_cm / 100.0,
+    barcode_target.y_cm / 100.0,
+    barcode_target.z_cm,
+    pillar_left_offset_m_);
+}
+
+void RouteTargetPublisherNode::barcodeTextCallback(const std_msgs::msg::String::SharedPtr msg)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (msg->data.empty()) {
+    return;
+  }
+  latest_barcode_text_ = msg->data;
+  barcode_detected_ = true;
+  RCLCPP_INFO(get_logger(), "Received barcode text '%s'.", latest_barcode_text_.c_str());
+
+  if (
+    current_idx_ != std::numeric_limits<std::size_t>::max() &&
+    current_idx_ < targets_.size() &&
+    targets_[current_idx_].wait_barcode)
+  {
+    RCLCPP_INFO(get_logger(), "Barcode received while flying to barcode waypoint. Continuing to spray route.");
+    advanceToNextTarget();
+  }
 }
 
 bool RouteTargetPublisherNode::getCurrentPose(
@@ -422,6 +510,26 @@ bool RouteTargetPublisherNode::handleSprayTarget(const rclcpp::Time & now_time)
   return true;
 }
 
+bool RouteTargetPublisherNode::handleBarcodeTarget()
+{
+  if (!barcode_detected_) {
+    RCLCPP_INFO_THROTTLE(
+      get_logger(),
+      *get_clock(),
+      1000,
+      "Barcode waypoint reached. Waiting for /barcode_text before continuing.");
+    return true;
+  }
+
+  RCLCPP_INFO(
+    get_logger(),
+    "Barcode '%s' received at waypoint %zu. Continuing to spray route.",
+    latest_barcode_text_.c_str(),
+    current_idx_);
+  advanceToNextTarget();
+  return true;
+}
+
 void RouteTargetPublisherNode::monitorTimerCallback()
 {
   std::lock_guard<std::mutex> lock(mutex_);
@@ -439,6 +547,11 @@ void RouteTargetPublisherNode::monitorTimerCallback()
   }
 
   if (current_idx_ == std::numeric_limits<std::size_t>::max()) {
+    RCLCPP_INFO_THROTTLE(
+      get_logger(),
+      *get_clock(),
+      2000,
+      "Waiting for /detected_pillar before takeoff.");
     return;
   }
 
@@ -482,6 +595,9 @@ void RouteTargetPublisherNode::monitorTimerCallback()
       y_cm,
       z_cm,
       yaw_deg);
+    if (target.wait_barcode && handleBarcodeTarget()) {
+      return;
+    }
     if (target.spray && handleSprayTarget(now_time)) {
       return;
     }

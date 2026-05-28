@@ -17,6 +17,8 @@ def generate_launch_description():
         "map_frame": "map",
         "laser_link_frame": "laser_link",
         "output_topic": "/target_position",
+        "pillar_left_offset_m": 0.8,
+        "barcode_target_z_cm": 130.0,
         # Reach tolerances
         "position_tolerance_cm": 6.0,
         "yaw_tolerance_deg": 5.0,

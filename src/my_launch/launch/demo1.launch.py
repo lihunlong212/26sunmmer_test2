@@ -62,6 +62,10 @@ def generate_launch_description():
         "map_frame": "map",
         "laser_link_frame": "laser_link",
         "output_topic": "/target_position",
+        # 启动后先等待雷达发布 /detected_pillar，再起飞。
+        # 条形码观察点 = 柱子坐标向左偏 0.8m：例如 (1, -1) -> (1, -0.2)。
+        "pillar_left_offset_m": 0.8,
+        "barcode_target_z_cm": 130.0,
         # 到达判定容差，单位分别是 cm、deg、cm。
         "position_tolerance_cm": 8.0,
         "yaw_tolerance_deg": 8.0,
@@ -131,6 +135,8 @@ def generate_launch_description():
         "window_name": "barcode_camera_preview",
         # False 表示同一个条形码只在内容变化时发布一次；True 表示每帧识别到都发布。
         "publish_duplicates": False,
+        # 第一次识别到条形码并发布 /barcode_text 后关闭 video1。
+        "stop_after_first_publish": True,
     }
 
     # 8. 单杆雷达检测
