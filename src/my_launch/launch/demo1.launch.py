@@ -63,16 +63,16 @@ def generate_launch_description():
         "laser_link_frame": "laser_link",
         "output_topic": "/target_position",
         # 到达判定容差，单位分别是 cm、deg、cm。
-        "position_tolerance_cm": 6.0,
-        "yaw_tolerance_deg": 5.0,
-        "height_tolerance_cm": 6.0,
+        "position_tolerance_cm": 8.0,
+        "yaw_tolerance_deg": 8.0,
+        "height_tolerance_cm": 8.0,
         # 到达需要撒药的航点后，最多等待视觉结果多久，单位秒。
         "spray_decision_timeout_sec": 1.5,
         # /spray_allowed 超过这个时间没更新，就认为视觉数据过期，单位秒。
         "spray_data_stale_timeout_sec": 0.5,
-        # 绿色时打激光：亮 0.5 秒、灭 0.5 秒、再亮 0.5 秒、最后灭灯。
-        "spray_flash_on_sec": 0.5,
-        "spray_flash_gap_sec": 0.5,
+        # 绿色时打激光：亮 0.3 秒、灭 0.3 秒、再亮 0.3 秒、最后灭灯。
+        "spray_flash_on_sec": 0.3,
+        "spray_flash_gap_sec": 0.3,
         # 发给 laser_control_pkg 的命令，1=开灯，2=关灯。
         "laser_on_command": 1,
         "laser_off_command": 2,
@@ -89,7 +89,7 @@ def generate_launch_description():
         # 节点启动时先确保激光关闭。
         "initial_off": True,
         # 手动发送 /laser/cmd=3 时的单次脉冲持续时间，单位秒；航线撒药不用这个参数。
-        "pulse_duration": 0.5,
+        "pulse_duration": 0.3,
         # 激光命令和状态话题。
         "command_topic": "/laser/cmd",
         "status_topic": "/laser/status",
@@ -111,13 +111,29 @@ def generate_launch_description():
         "green_h_max": 90,
         "green_s_min": 45,
         "green_v_min": 60,
-        # 绿色像素占中心 2500 像素的比例，大于 0.30 就认为可以撒药。
-        "green_ratio_threshold": 0.30,
+        # 绿色像素占中心 2500 像素的比例，大于 0.10 就认为可以撒药。
+        "green_ratio_threshold": 0.10,
         # 颜色识别只输出这个打药判断话题；测试时看 ros2 topic echo /spray_allowed。
         "spray_allowed_topic": "/spray_allowed",
     }
 
     # 7. 单杆雷达检测
+    barcode_params = {
+        # 条形码摄像头设备。Code128 条形码使用 video1，不和下视颜色识别的 video0 混用。
+        "camera_device": "/dev/video1",
+        "frame_width": 640,
+        "frame_height": 480,
+        "fps": 15.0,
+        # 条形码识别结果输出话题，消息类型 std_msgs/String。
+        "barcode_topic": "/barcode_text",
+        # 是否显示条形码摄像头预览窗口；SSH 无桌面时改成 False。
+        "show_preview": True,
+        "window_name": "barcode_camera_preview",
+        # False 表示同一个条形码只在内容变化时发布一次；True 表示每帧识别到都发布。
+        "publish_duplicates": False,
+    }
+
+    # 8. 单杆雷达检测
     pillar_params = {
         # 雷达输入和杆子坐标输出话题。输出格式：Float32MultiArray [x_m, y_m]。
         "scan_topic": "/scan",
@@ -182,6 +198,14 @@ def generate_launch_description():
         parameters=[camera_params],
     )
 
+    barcode_camera_node = Node(
+        package="barcode_camera_pkg",
+        executable="barcode_camera_node",
+        name="barcode_camera_node",
+        output="screen",
+        parameters=[barcode_params],
+    )
+
     pillar_detector_node = Node(
         package="pillar_detector_pkg",
         executable="pillar_detector_node",
@@ -197,5 +221,6 @@ def generate_launch_description():
         route_node,
         laser_control_node,
         drone_camera_node,
+        barcode_camera_node,
         pillar_detector_node,
     ])

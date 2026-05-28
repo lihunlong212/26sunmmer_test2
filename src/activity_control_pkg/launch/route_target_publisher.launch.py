@@ -24,8 +24,8 @@ def generate_launch_description():
         # Spray gating
         "spray_decision_timeout_sec": 1.5,
         "spray_data_stale_timeout_sec": 0.5,
-        "spray_flash_on_sec": 0.5,
-        "spray_flash_gap_sec": 0.5,
+        "spray_flash_on_sec": 0.3,
+        "spray_flash_gap_sec": 0.3,
         "laser_on_command": 1,
         "laser_off_command": 2,
     }

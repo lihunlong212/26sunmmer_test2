@@ -7,6 +7,7 @@
   <maintainer email="ubuntu@todo.todo">ubuntu</maintainer>
   <license>Apache-2.0</license>
   <exec_depend>drone_camera_pkg</exec_depend>
+  <exec_depend>barcode_camera_pkg</exec_depend>
   <exec_depend>laser_control_pkg</exec_depend>
   <exec_depend>pillar_detector_pkg</exec_depend>
 

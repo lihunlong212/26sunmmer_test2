@@ -15,7 +15,7 @@ def generate_launch_description() -> LaunchDescription:
                     "on_level": 0,
                     "off_level": 1,
                     "initial_off": True,
-                    "pulse_duration": 0.5,
+                    "pulse_duration": 0.3,
                     "command_topic": "/laser/cmd",
                     "status_topic": "/laser/status",
                 }

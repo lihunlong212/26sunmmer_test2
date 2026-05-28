@@ -30,7 +30,7 @@ public:
     green_h_max_(declare_parameter<int>("green_h_max", 90)),
     green_s_min_(declare_parameter<int>("green_s_min", 45)),
     green_v_min_(declare_parameter<int>("green_v_min", 60)),
-    green_ratio_threshold_(declare_parameter<double>("green_ratio_threshold", 0.30))
+    green_ratio_threshold_(declare_parameter<double>("green_ratio_threshold", 0.10))
   {
     spray_allowed_pub_ =
       create_publisher<std_msgs::msg::Bool>(spray_allowed_topic_, rclcpp::QoS(10));

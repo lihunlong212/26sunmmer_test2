@@ -94,8 +94,8 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
   output_topic_ = declare_parameter("output_topic", "/target_position");
   spray_decision_timeout_sec_ = declare_parameter("spray_decision_timeout_sec", 1.5);
   spray_data_stale_timeout_sec_ = declare_parameter("spray_data_stale_timeout_sec", 0.5);
-  spray_flash_on_sec_ = declare_parameter("spray_flash_on_sec", 0.5);
-  spray_flash_gap_sec_ = declare_parameter("spray_flash_gap_sec", 0.5);
+  spray_flash_on_sec_ = declare_parameter("spray_flash_on_sec", 0.3);
+  spray_flash_gap_sec_ = declare_parameter("spray_flash_gap_sec", 0.3);
   laser_on_command_ = declare_parameter("laser_on_command", 1);
   laser_off_command_ = declare_parameter("laser_off_command", 2);
 
