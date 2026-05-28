@@ -13,6 +13,7 @@
 #include <std_msgs/msg/empty.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/int16.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/u_int8.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/buffer.h>
@@ -46,6 +47,7 @@ private:
   void sendLedDigitToSerial(uint8_t digit);
   void sendMissionCompleteToSerial();
   void ledDigitCallback(const std_msgs::msg::UInt8::SharedPtr msg);
+  void barcodeTextCallback(const std_msgs::msg::String::SharedPtr msg);
   void missionCompleteCallback(const std_msgs::msg::Empty::SharedPtr msg);
   void protocolDataHandler(uint8_t id, const std::vector<uint8_t> & data);
 
@@ -61,6 +63,7 @@ private:
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr route_choice_sub_;
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr target_velocity_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr led_digit_sub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr barcode_text_sub_;
   rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr mission_complete_sub_;
 
   std::unique_ptr<serial_comm::SerialComm> serial_comm_;

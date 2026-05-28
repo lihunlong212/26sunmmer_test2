@@ -9,7 +9,7 @@ This workspace is configured for the 2021 plant-protection UAV task.
 - `barcode_camera_pkg` reads `/dev/video1`, detects Code128 barcodes, and publishes the decoded text on `/barcode_text`.
 - `laser_control_pkg` subscribes to `/laser/cmd` and controls WiringOP pin 10. Low level turns the laser on, high level turns it off.
 - `pid_control_pkg` converts `/target_position` and `/height` into `/target_velocity`.
-- `uart_to_stm32` forwards `/target_velocity` during an active route, publishes `/height`, sends `/led_digit` values 1/2/3 as serial frame `0x12`, and sends mission completion as frame `0x66`.
+- `uart_to_stm32` forwards `/target_velocity` during an active route, publishes `/height`, sends `/barcode_text` or `/led_digit` values 1/2/3 as serial frame `0x12`, and sends mission completion as frame `0x66`.
 
 ## Route Parameters
 

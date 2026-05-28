@@ -1,7 +1,9 @@
 #include "uart_to_stm32/uart_to_stm32.hpp"
 #include <iostream>
 
+#include <algorithm>
 #include <chrono>
+#include <cctype>
 #include <cmath>
 #include <thread>
 #include <utility>
@@ -99,6 +101,10 @@ bool UartToStm32::initialize(
       "/led_digit", rclcpp::QoS(10),
       std::bind(&UartToStm32::ledDigitCallback, this, std::placeholders::_1));
 
+    barcode_text_sub_ = node_->create_subscription<std_msgs::msg::String>(
+      "/barcode_text", rclcpp::QoS(10),
+      std::bind(&UartToStm32::barcodeTextCallback, this, std::placeholders::_1));
+
       
     mission_complete_sub_ = node_->create_subscription<std_msgs::msg::Empty>(
       "/mission_complete", rclcpp::QoS(10),
@@ -121,7 +127,7 @@ bool UartToStm32::initialize(
     RCLCPP_INFO(node_->get_logger(), "UartToStm32 initialized successfully");
     RCLCPP_INFO(
       node_->get_logger(),
-      "Subscribed to /velocity_map, /route_choice, /target_velocity, /led_digit, and /mission_complete topics");
+      "Subscribed to /velocity_map, /route_choice, /target_velocity, /led_digit, /barcode_text, and /mission_complete topics");
     return true;
 
   } catch (const std::exception & e) {
@@ -489,6 +495,38 @@ void UartToStm32::ledDigitCallback(const std_msgs::msg::UInt8::SharedPtr msg)
 
   for (int i = 0; i < 3; ++i) {
     sendLedDigitToSerial(msg->data);
+    std::this_thread::sleep_for(100ms);
+  }
+}
+
+void UartToStm32::barcodeTextCallback(const std_msgs::msg::String::SharedPtr msg)
+{
+  std::string text = msg->data;
+  text.erase(
+    std::remove_if(
+      text.begin(),
+      text.end(),
+      [](unsigned char ch) { return std::isspace(ch) != 0; }),
+    text.end());
+
+  if (text.size() != 1 || text[0] < '1' || text[0] > '3') {
+    RCLCPP_WARN(
+      node_->get_logger(),
+      "Ignoring /barcode_text='%s'. Expected barcode content 1, 2, or 3.",
+      msg->data.c_str());
+    return;
+  }
+
+  const uint8_t digit = static_cast<uint8_t>(text[0] - '0');
+  RCLCPP_INFO(
+    node_->get_logger(),
+    "Received /barcode_text='%s'. Sending frame 0x%02X digit=%u three times.",
+    msg->data.c_str(),
+    static_cast<unsigned>(LED_DIGIT_FRAME_ID),
+    static_cast<unsigned>(digit));
+
+  for (int i = 0; i < 3; ++i) {
+    sendLedDigitToSerial(digit);
     std::this_thread::sleep_for(100ms);
   }
 }
