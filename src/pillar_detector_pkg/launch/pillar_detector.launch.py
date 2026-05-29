@@ -25,7 +25,7 @@ def generate_launch_description():
                 # 单帧里一组点至少要有这么多个点，才可能被认为是杆子候选。
                 "min_pts_per_group": 3,
                 # 两个杆子候选之间至少要相隔这么远，单位 m；本题只有一个杆子，用于去重。
-                "min_pillar_separation_m": 0.40,
+                "min_pillar_separation_m": 0.80,
                 # 连续累计多少帧雷达数据后再输出最终杆子坐标。
                 "accumulation_frames": 20,
                 # 多帧候选点合并距离，单位 m；距离小于该值认为是同一个杆子的多次观测。

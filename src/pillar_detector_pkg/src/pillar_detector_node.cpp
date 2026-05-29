@@ -214,6 +214,7 @@ bool PillarDetectorNode::findBestPillar(
 
   bool found = false;
   Cluster best{0.0, 0.0, 0};
+  double best_distance = std::numeric_limits<double>::infinity();
   for (int label = 0; label < next_label; ++label) {
     double sum_x = 0.0;
     double sum_y = 0.0;
@@ -226,8 +227,14 @@ bool PillarDetectorNode::findBestPillar(
       }
     }
 
-    if (votes >= min_votes_ && votes > best.votes) {
-      best = Cluster{sum_x / static_cast<double>(votes), sum_y / static_cast<double>(votes), votes};
+    if (votes >= min_votes_) {
+      const double x = sum_x / static_cast<double>(votes);
+      const double y = sum_y / static_cast<double>(votes);
+      const double distance = std::hypot(x, y);
+      if (!found || distance < best_distance) {
+        best = Cluster{x, y, votes};
+        best_distance = distance;
+      }
       found = true;
     }
   }
@@ -250,9 +257,10 @@ void PillarDetectorNode::publishPillar(const Cluster & pillar)
 
   RCLCPP_INFO(
     get_logger(),
-    "Detected pillar: x=%.3fm y=%.3fm votes=%d/%d. Published [x, y].",
+    "Detected nearest pillar: x=%.3fm y=%.3fm distance=%.3fm votes=%d/%d. Published [x, y].",
     pillar.x_m,
     pillar.y_m,
+    std::hypot(pillar.x_m, pillar.y_m),
     pillar.votes,
     accumulation_frames_);
 }

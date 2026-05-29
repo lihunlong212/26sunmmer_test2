@@ -63,9 +63,9 @@ def generate_launch_description():
         "laser_link_frame": "laser_link",
         "output_topic": "/target_position",
         # 启动后先等待雷达发布 /detected_pillar，再起飞。
-        # 条形码观察点 = 柱子坐标向左偏 0.8m：例如 (1, -1) -> (1, -0.2)。
+        # 条形码观察点 = 柱子坐标向左偏 0.5m：例如 (1, -1) -> (1, -0.5)。
         # 条形码识别高度保持 105cm；打药航线和动态降落前转场高度是 140cm。
-        "pillar_left_offset_m": 0.8,
+        "pillar_left_offset_m": 0.5,
         "barcode_target_z_cm": 105.0,
         # 到达判定容差，单位分别是 cm、deg、cm。
         "position_tolerance_cm": 8.0,
