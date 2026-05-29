@@ -56,6 +56,8 @@ private:
   void resetSprayState();
   bool handleSprayTarget(const rclcpp::Time & now_time);
   bool handleBarcodeTarget();
+  bool parseBarcodeLandingDigit(const std::string & text, int & digit) const;
+  void appendBarcodeLandingTargets(int digit);
   void publishLaserCommand(int command);
 
   static double meterToCm(double value_m);
@@ -106,6 +108,8 @@ private:
   rclcpp::Time last_spray_allowed_time_;
   bool pillar_target_inserted_;
   bool barcode_detected_;
+  bool landing_targets_inserted_;
+  int barcode_landing_digit_;
   std::string latest_barcode_text_;
 
   bool spray_active_;

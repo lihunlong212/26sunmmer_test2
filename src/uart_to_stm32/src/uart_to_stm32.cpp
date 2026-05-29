@@ -33,6 +33,11 @@ bool isSupportedRouteChoice(uint8_t route_id)
 {
   return route_id == 1 || route_id == 2;
 }
+
+bool isSupportedLedDigit(int digit)
+{
+  return digit >= 0 && digit <= 5;
+}
 }  // namespace
 
 UartToStm32::UartToStm32(rclcpp::Node::SharedPtr node)
@@ -496,10 +501,10 @@ void UartToStm32::sendMissionCompleteToSerial()
 
 void UartToStm32::ledDigitCallback(const std_msgs::msg::UInt8::SharedPtr msg)
 {
-  if (msg->data < 1 || msg->data > 3) {
+  if (!isSupportedLedDigit(static_cast<int>(msg->data))) {
     RCLCPP_WARN(
       node_->get_logger(),
-      "Ignoring /led_digit=%u. Expected 1, 2, or 3.",
+      "Ignoring /led_digit=%u. Expected 0 to 5.",
       static_cast<unsigned>(msg->data));
     return;
   }
@@ -532,16 +537,16 @@ void UartToStm32::barcodeTextCallback(const std_msgs::msg::String::SharedPtr msg
   {
     RCLCPP_WARN(
       node_->get_logger(),
-      "Ignoring /barcode_text='%s'. Expected numeric barcode content 1, 2, or 3.",
+      "Ignoring /barcode_text='%s'. Expected numeric barcode content 0 to 5.",
       msg->data.c_str());
     return;
   }
 
   const int parsed_digit = std::atoi(text.c_str());
-  if (parsed_digit < 1 || parsed_digit > 3) {
+  if (!isSupportedLedDigit(parsed_digit)) {
     RCLCPP_WARN(
       node_->get_logger(),
-      "Ignoring /barcode_text='%s'. Parsed value=%d, expected 1, 2, or 3.",
+      "Ignoring /barcode_text='%s'. Parsed value=%d, expected 0 to 5.",
       msg->data.c_str(),
       parsed_digit);
     return;

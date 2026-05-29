@@ -2,8 +2,11 @@
 
 #include <angles/angles.h>
 
+#include <algorithm>
 #include <chrono>
+#include <cctype>
 #include <cmath>
+#include <exception>
 #include <functional>
 #include <limits>
 
@@ -24,49 +27,47 @@ constexpr int kSprayDecisionFrameCount = 3;
 std::vector<Target> buildPlantProtectionRoute()
 {
   return {
-    Target{0.0, 0.0, 130.0, 0.0},
+    Target{0.0, 0.0, 140.0, 0.0},
 
-    Target{200.0, -50.0, 130.0, 0.0, true},
-    Target{250.0, -50.0, 130.0, 0.0, true},
+    Target{200.0, -50.0, 140.0, 0.0, true},
+    Target{250.0, -50.0, 140.0, 0.0, true},
 
-    Target{250.0, -100.0, 130.0, 0.0, true},
-    Target{200.0, -100.0, 130.0, 0.0, true},
+    Target{250.0, -100.0, 140.0, 0.0, true},
+    Target{200.0, -100.0, 140.0, 0.0, true},
 
-    Target{200.0, -150.0, 130.0, 0.0, true},
-    Target{250.0, -150.0, 130.0, 0.0, true},
+    Target{200.0, -150.0, 140.0, 0.0, true},
+    Target{250.0, -150.0, 140.0, 0.0, true},
 
-    Target{250.0, -200.0, 130.0, 0.0, true},
-    Target{250.0, -250.0, 130.0, 0.0, true},
-    Target{250.0, -300.0, 130.0, 0.0, true},
-    Target{250.0, -350.0, 130.0, 0.0, true},
+    Target{250.0, -200.0, 140.0, 0.0, true},
+    Target{250.0, -250.0, 140.0, 0.0, true},
+    Target{250.0, -300.0, 140.0, 0.0, true},
+    Target{250.0, -350.0, 140.0, 0.0, true},
 
-    Target{200.0, -350.0, 130.0, 0.0, true},
-    Target{200.0, -300.0, 130.0, 0.0, true},
-    Target{200.0, -250.0, 130.0, 0.0, true},
-    Target{200.0, -200.0, 130.0, 0.0, true},
+    Target{200.0, -350.0, 140.0, 0.0, true},
+    Target{200.0, -300.0, 140.0, 0.0, true},
+    Target{200.0, -250.0, 140.0, 0.0, true},
+    Target{200.0, -200.0, 140.0, 0.0, true},
 
-    Target{150.0, -200.0, 130.0, 0.0, true},
-    Target{150.0, -250.0, 130.0, 0.0, true},
-    Target{150.0, -300.0, 130.0, 0.0, true},
-    Target{150.0, -350.0, 130.0, 0.0, true},
+    Target{150.0, -200.0, 140.0, 0.0, true},
+    Target{150.0, -250.0, 140.0, 0.0, true},
+    Target{150.0, -300.0, 140.0, 0.0, true},
+    Target{150.0, -350.0, 140.0, 0.0, true},
 
-    Target{100.0, -350.0, 130.0, 0.0, true},
-    Target{100.0, -300.0, 130.0, 0.0, true},
-    Target{100.0, -250.0, 130.0, 0.0, true},
-    Target{100.0, -200.0, 130.0, 0.0, true},
+    Target{100.0, -350.0, 140.0, 0.0, true},
+    Target{100.0, -300.0, 140.0, 0.0, true},
+    Target{100.0, -250.0, 140.0, 0.0, true},
+    Target{100.0, -200.0, 140.0, 0.0, true},
 
-    Target{50.0, -200.0, 130.0, 0.0, true},
-    Target{50.0, -250.0, 130.0, 0.0, true},
-    Target{50.0, -300.0, 130.0, 0.0, true},
-    Target{50.0, -350.0, 130.0, 0.0, true},
+    Target{50.0, -200.0, 140.0, 0.0, true},
+    Target{50.0, -250.0, 140.0, 0.0, true},
+    Target{50.0, -300.0, 140.0, 0.0, true},
+    Target{50.0, -350.0, 140.0, 0.0, true},
 
-    Target{0.0, -350.0, 130.0, 0.0, true},
-    Target{0.0, -300.0, 130.0, 0.0, true},
-    Target{0.0, -250.0, 130.0, 0.0, true},
-    Target{0.0, -200.0, 130.0, 0.0, true},
+    Target{0.0, -350.0, 140.0, 0.0, true},
+    Target{0.0, -300.0, 140.0, 0.0, true},
+    Target{0.0, -250.0, 140.0, 0.0, true},
+    Target{0.0, -200.0, 140.0, 0.0, true},
 
-    Target{0.0, 0.0, 130.0, 0.0},
-    Target{0.0, 0.0, 0.0, 0.0},
   };
 }
 }  // namespace
@@ -87,6 +88,8 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
   latest_spray_allowed_(false),
   pillar_target_inserted_(false),
   barcode_detected_(false),
+  landing_targets_inserted_(false),
+  barcode_landing_digit_(0),
   spray_active_(false),
   spray_laser_step_(-1),
   spray_frame_count_(0),
@@ -322,9 +325,21 @@ void RouteTargetPublisherNode::barcodeTextCallback(const std_msgs::msg::String::
   if (msg->data.empty()) {
     return;
   }
+
+  int landing_digit = 0;
+  const bool has_landing_digit = parseBarcodeLandingDigit(msg->data, landing_digit);
   latest_barcode_text_ = msg->data;
   barcode_detected_ = true;
   RCLCPP_INFO(get_logger(), "Received barcode text '%s'.", latest_barcode_text_.c_str());
+  if (has_landing_digit) {
+    barcode_landing_digit_ = landing_digit;
+    appendBarcodeLandingTargets(landing_digit);
+  } else {
+    RCLCPP_WARN(
+      get_logger(),
+      "Barcode text '%s' has no valid digit for landing radius. Landing target not updated.",
+      latest_barcode_text_.c_str());
+  }
 
   if (
     current_idx_ != std::numeric_limits<std::size_t>::max() &&
@@ -573,6 +588,52 @@ bool RouteTargetPublisherNode::handleBarcodeTarget()
     current_idx_);
   advanceToNextTarget();
   return true;
+}
+
+bool RouteTargetPublisherNode::parseBarcodeLandingDigit(const std::string & text, int & digit) const
+{
+  std::string digits;
+  for (const unsigned char ch : text) {
+    if (std::isdigit(ch) != 0) {
+      digits.push_back(static_cast<char>(ch));
+    }
+  }
+
+  if (digits.empty()) {
+    return false;
+  }
+
+  try {
+    digit = std::stoi(digits);
+  } catch (const std::exception &) {
+    return false;
+  }
+
+  return digit >= 0 && digit <= 5;
+}
+
+void RouteTargetPublisherNode::appendBarcodeLandingTargets(int digit)
+{
+  if (landing_targets_inserted_) {
+    return;
+  }
+
+  constexpr double kFlightHeightCm = 140.0;
+  constexpr double kLandingRadiusStepCm = 8.0;
+  const double landing_x_cm = 0.0;
+  const double landing_y_cm = -static_cast<double>(digit) * kLandingRadiusStepCm;
+
+  targets_.push_back(Target{landing_x_cm, landing_y_cm, kFlightHeightCm, 0.0});
+  targets_.push_back(Target{landing_x_cm, landing_y_cm, 0.0, 0.0});
+  landing_targets_inserted_ = true;
+
+  RCLCPP_INFO(
+    get_logger(),
+    "Appended barcode landing targets for digit %d: first x=%.1fcm y=%.1fcm z=%.1fcm, then z=0.0cm.",
+    digit,
+    landing_x_cm,
+    landing_y_cm,
+    kFlightHeightCm);
 }
 
 void RouteTargetPublisherNode::monitorTimerCallback()

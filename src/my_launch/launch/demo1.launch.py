@@ -64,6 +64,7 @@ def generate_launch_description():
         "output_topic": "/target_position",
         # 启动后先等待雷达发布 /detected_pillar，再起飞。
         # 条形码观察点 = 柱子坐标向左偏 0.8m：例如 (1, -1) -> (1, -0.2)。
+        # 条形码识别高度保持 105cm；打药航线和动态降落前转场高度是 140cm。
         "pillar_left_offset_m": 0.8,
         "barcode_target_z_cm": 105.0,
         # 到达判定容差，单位分别是 cm、deg、cm。
@@ -144,18 +145,23 @@ def generate_launch_description():
         # 雷达输入和杆子坐标输出话题。输出格式：Float32MultiArray [x_m, y_m]。
         "scan_topic": "/scan",
         "output_topic": "/detected_pillar",
-        # 搜索杆子的矩形区域，单位 m。
+        # 搜索杆子的矩形区域，单位 m；只会在这个 map 坐标范围内找杆子。
         "map_x_min_m": 0.5,
-        "map_x_max_m": 2.0,
-        "map_y_min_m": -2.0,
+        "map_x_max_m": 2.5,
+        # y 是负方向区域，所以这里表示只搜索 -2.5m 到 -0.5m 之间的杆子。
+        "map_y_min_m": -2.5,
         "map_y_max_m": -0.5,
-        # 单帧聚类参数。
+        # 单帧聚类距离，单位 m；相邻雷达点距离小于该值会被归为同一组。
         "group_dist_m": 0.25,
+        # 单帧里一组点至少要有这么多个点，才可能被认为是杆子候选。
         "min_pts_per_group": 4,
+        # 两个杆子候选之间至少要相隔这么远，单位 m；本题只有一个杆子，用于去重。
         "min_pillar_separation_m": 0.40,
-        # 多帧累计投票参数。
+        # 连续累计多少帧雷达数据后再输出最终杆子坐标。
         "accumulation_frames": 20,
+        # 多帧候选点合并距离，单位 m；距离小于该值认为是同一个杆子的多次观测。
         "cluster_merge_dist_m": 0.20,
+        # 20 帧里至少命中这么多票，才确认杆子有效。
         "min_votes": 8,
     }
 
