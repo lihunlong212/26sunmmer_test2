@@ -52,6 +52,8 @@ private:
   int frame_count_;
   bool done_;
   bool ranges_precomputed_;
+  std::size_t last_in_bounds_count_;
+  std::size_t last_group_count_;
   std::vector<double> max_range_per_idx_;
   std::vector<Detection> accumulated_;
   mutable std::mutex mutex_;

@@ -11,7 +11,9 @@ PillarDetectorNode::PillarDetectorNode(const rclcpp::NodeOptions & options)
 : rclcpp::Node("pillar_detector", options),
   frame_count_(0),
   done_(false),
-  ranges_precomputed_(false)
+  ranges_precomputed_(false),
+  last_in_bounds_count_(0),
+  last_group_count_(0)
 {
   map_x_min_m_ = declare_parameter("map_x_min_m", 0.5);
   map_x_max_m_ = declare_parameter("map_x_max_m", 2.5);
@@ -117,6 +119,8 @@ std::vector<Detection> PillarDetectorNode::detectInFrame(
   }
 
   if (in_bounds.empty()) {
+    last_in_bounds_count_ = 0;
+    last_group_count_ = 0;
     return detections;
   }
 
@@ -141,6 +145,9 @@ std::vector<Detection> PillarDetectorNode::detectInFrame(
   if (static_cast<int>(current_group.size()) >= min_pts_per_group_) {
     groups.push_back(current_group);
   }
+
+  last_in_bounds_count_ = in_bounds.size();
+  last_group_count_ = groups.size();
 
   for (const auto & group : groups) {
     double sum_x = 0.0;
@@ -284,9 +291,11 @@ void PillarDetectorNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedP
     get_logger(),
     *get_clock(),
     1000,
-    "Pillar detection frame %d/%d: frame_candidates=%zu accumulated=%zu",
+    "Pillar detection frame %d/%d: in_bounds=%zu groups=%zu frame_candidates=%zu accumulated=%zu",
     frame_count_,
     accumulation_frames_,
+    last_in_bounds_count_,
+    last_group_count_,
     detections.size(),
     accumulated_.size());
 
@@ -294,16 +303,18 @@ void PillarDetectorNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedP
     return;
   }
 
-  done_ = true;
   Cluster pillar;
   if (findBestPillar(accumulated_, pillar)) {
+    done_ = true;
     publishPillar(pillar);
   } else {
     RCLCPP_WARN(
       get_logger(),
-      "No pillar reached min_votes=%d after %d frames.",
+      "No pillar reached min_votes=%d after %d frames. Clearing accumulated data and retrying.",
       min_votes_,
       accumulation_frames_);
+    frame_count_ = 0;
+    accumulated_.clear();
   }
 }
 
