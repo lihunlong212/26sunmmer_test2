@@ -15,7 +15,7 @@ This workspace is configured for the 2021 plant-protection UAV task.
 
 Waypoints are edited only in `activity_control_pkg/src/route_target_publisher.cpp`.
 
-`demo1.launch.py` starts `route_target_publisher_node`. The route node first waits for `/detected_pillar`, inserts a barcode waypoint 0.5m left of the pillar at 105cm, takes off to the 140cm route height, reads `/barcode_text`, then continues to the source-defined spray route. `Target{..., true}` runs the color check and laser flash; `Target{...}` or `Target{..., false}` is a normal waypoint. After the barcode is decoded, the route appends a dynamic landing pair: first fly to `(0, -digit*8cm, 140cm)`, then descend to `(0, -digit*8cm, 0cm)`.
+`demo1.launch.py` starts `route_target_publisher_node`. The route node first waits for `/detected_pillar`, inserts a barcode waypoint 0.5m left of the pillar at 140cm, reads `/barcode_text`, then continues to the source-defined spray route. `Target{..., true}` runs the color check and laser flash; `Target{...}` or `Target{..., false}` is a normal waypoint. After the barcode is decoded, the route appends a dynamic landing pair: first fly to `(0, -digit*8cm, 140cm)`, then descend to `(0, -digit*8cm, 0cm)`.
 
 ## Color Detection
 

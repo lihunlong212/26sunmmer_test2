@@ -17,9 +17,9 @@ def generate_launch_description():
         "map_frame": "map",
         "laser_link_frame": "laser_link",
         "output_topic": "/target_position",
-        # 条形码观察点 = 杆子坐标向左偏 0.5m，高度保持 105cm；主航线高度在源码里是 140cm。
+        # 条形码观察点 = 杆子坐标向左偏 0.5m，高度保持 140cm。
         "pillar_left_offset_m": 0.5,
-        "barcode_target_z_cm": 105.0,
+        "barcode_target_z_cm": 140.0,
         # 到达判定容差。
         "position_tolerance_cm": 6.0,
         "yaw_tolerance_deg": 5.0,

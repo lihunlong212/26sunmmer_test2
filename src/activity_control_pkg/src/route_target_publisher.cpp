@@ -102,7 +102,7 @@ RouteTargetPublisherNode::RouteTargetPublisherNode(const rclcpp::NodeOptions & o
   laser_link_frame_ = declare_parameter("laser_link_frame", "laser_link");
   output_topic_ = declare_parameter("output_topic", "/target_position");
   pillar_left_offset_m_ = declare_parameter("pillar_left_offset_m", 0.5);
-  barcode_target_z_cm_ = declare_parameter("barcode_target_z_cm", 105.0);
+  barcode_target_z_cm_ = declare_parameter("barcode_target_z_cm", 140.0);
   spray_decision_timeout_sec_ = declare_parameter("spray_decision_timeout_sec", 1.5);
   spray_data_stale_timeout_sec_ = declare_parameter("spray_data_stale_timeout_sec", 0.5);
   spray_flash_on_sec_ = declare_parameter("spray_flash_on_sec", 0.3);

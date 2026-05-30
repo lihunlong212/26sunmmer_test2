@@ -17,7 +17,7 @@ def generate_launch_description() -> LaunchDescription:
         "laser_link_frame": "laser_link",
         "output_topic": "/target_position",
         "pillar_left_offset_m": 0.5,
-        "barcode_target_z_cm": 105.0,
+        "barcode_target_z_cm": 140.0,
         "position_tolerance_cm": 6.0,
         "yaw_tolerance_deg": 5.0,
         "height_tolerance_cm": 6.0,
